@@ -8,10 +8,10 @@ from credentials import *
 TWEET_URL = "https://api.twitter.com/1.1/statuses/update.json"
 
 def initialize_client(consumer_key, consumer_secret, access_key, access_secret):
-    global client
     consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
     token = oauth.Token(key=access_key, secret=access_secret)
     client = oauth.Client(consumer, token)
+    return client
 
 class Bot:
     def __init__(self, tweets=[], counter=0, filename=None, interval=10):
@@ -57,6 +57,7 @@ class Bot:
             # if the minute is a multiple of the interval and second == 0, send a tweet and increment the counter
             if not minute % self.interval and not second:
                 # when the counter gets to the end, wrap around to the start using modulus
+                client = initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
                 __class__.tweet(client, self.tweets[self.counter % len(self.tweets)])
                 self.counter += 1
                 with codecs.open(self.filename, "w", "utf-8") as f:
@@ -68,7 +69,6 @@ class Bot:
 
 
 def main():
-    initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
     bot = Bot(filename="transcript.txt")
     bot.run()
 
