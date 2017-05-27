@@ -23,13 +23,16 @@ class Bot:
                     lines = f.readlines()
                     # For some reason a \ufeff sometimes appears in front of the number
                     lines[0] = lines[0].replace('\ufeff', '') # get rid of it
-                    self.counter = int(lines[0])
-                    self.tweets = lines[1:]
+                    self.counter = int(lines[0]) # first line
+                    self.tweets = lines[1:] # rest of file
                     self.filename = filename
-            except:
+            except ValueError:
+                print("Failed to set the counter")
+                quit()
+            except IOError:
                 print("Error opening the file")
                 quit()
-        else:
+        else: # if a list of tweets was supplied
             self.tweets = tweets
             self.counter = counter
         self.interval = interval
@@ -44,8 +47,15 @@ class Bot:
     def tweet(client, msg):
         # encode message into URL format
         tweet_msg = oauth.urlencode({'status': msg})
+        # send HTTP request
         response, data = Bot.oauth_req(client, TWEET_URL, tweet_msg)
-        print("Tweeting \"{}\", HTTP: {}".format(msg.encode("utf-8").strip(), response.status))
+
+        try: # Log the tweet to the console with the HTTP status
+            print("Tweeting \"{}\", HTTP: {}".format(msg.encode("utf-8").strip(), response.status))
+        except UnicodeEncodeError:
+            print("Failed encoding tweet for debug print")
+
+        return response, data
 
 
     def run(self):
@@ -58,11 +68,15 @@ class Bot:
             if not minute % self.interval and not second:
                 # when the counter gets to the end, wrap around to the start using modulus
                 client = initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
-                __class__.tweet(client, self.tweets[self.counter % len(self.tweets)])
-                self.counter += 1
-                with codecs.open(self.filename, "w", "utf-8") as f:
-                    tweets = "".join(self.tweets)
-                    f.write(str(self.counter) + "\r\n" + tweets)
+                response, data = __class__.tweet(client, self.tweets[self.counter % len(self.tweets)])
+
+                if response.status in [200, 403]: # If successfully sent, or duplicate tweet
+                    self.counter += 1
+
+                    if self.filename: # If reading from a file, increment file's counter
+                        with codecs.open(self.filename, "w", "utf-8") as f:
+                            tweets = "".join(self.tweets)
+                            f.write(str(self.counter) + "\r\n" + tweets)
 
             t.sleep(1) # Sleep for a second to avoid posting multiple tweets
 
