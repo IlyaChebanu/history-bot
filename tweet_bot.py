@@ -45,7 +45,7 @@ class Bot:
         # encode message into URL format
         tweet_msg = oauth.urlencode({'status': msg})
         response, data = Bot.oauth_req(client, TWEET_URL, tweet_msg)
-        print("Tweeting \"{}\", HTTP: {}".format(msg.strip(), response.status))
+        print("Tweeting \"{}\", HTTP: {}".format(msg.encode("utf-8").strip(), response.status))
 
 
     def run(self):
