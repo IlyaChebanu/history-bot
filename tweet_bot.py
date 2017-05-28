@@ -81,7 +81,7 @@ class Bot:
                                 f.write(str(self.counter) + "\r\n" + tweets)
                         break # No need to try post again, break out of the loop
                     else:
-                        print(response)
+                        print(data)
             t.sleep(1) # Sleep for a second to avoid posting multiple tweets
 
 
