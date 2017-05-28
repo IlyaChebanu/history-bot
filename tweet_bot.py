@@ -66,11 +66,12 @@ class Bot:
 
             # if the minute is a multiple of the interval and second == 0, send a tweet and increment the counter
             if not minute % self.interval and not second:
-                # when the counter gets to the end, wrap around to the start using modulus
-                client = initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
-                response, data = __class__.tweet(client, self.tweets[self.counter % len(self.tweets)])
-
                 for i in range(4): # Try to post 4 times in case an error occurs
+                    client = initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
+                    # when the counter gets to the end, wrap around to the start using modulus
+                    msg = self.tweets[self.counter % len(self.tweets)]
+                    response, data = __class__.tweet(client, msg)
+
                     if response.status in [200, 403]: # If successfully sent, or duplicate tweet
                         self.counter += 1
 
