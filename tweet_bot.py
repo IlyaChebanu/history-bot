@@ -70,14 +70,15 @@ class Bot:
                 client = initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
                 response, data = __class__.tweet(client, self.tweets[self.counter % len(self.tweets)])
 
-                if response.status in [200, 403]: # If successfully sent, or duplicate tweet
-                    self.counter += 1
+                for i in range(4): # Try to post 4 times in case an error occurs
+                    if response.status in [200, 403]: # If successfully sent, or duplicate tweet
+                        self.counter += 1
 
-                    if self.filename: # If reading from a file, increment file's counter
-                        with codecs.open(self.filename, "w", "utf-8") as f:
-                            tweets = "".join(self.tweets)
-                            f.write(str(self.counter) + "\r\n" + tweets)
-
+                        if self.filename: # If reading from a file, increment file's counter
+                            with codecs.open(self.filename, "w", "utf-8") as f:
+                                tweets = "".join(self.tweets)
+                                f.write(str(self.counter) + "\r\n" + tweets)
+                        break
             t.sleep(1) # Sleep for a second to avoid posting multiple tweets
 
 
