@@ -79,9 +79,9 @@ class Bot:
                             with codecs.open(self.filename, "w", "utf-8") as f:
                                 tweets = "".join(self.tweets)
                                 f.write(str(self.counter) + "\r\n" + tweets)
-                        break
+                        break # No need to try post again, break out of the loop
                     else:
-                        print(response.error)
+                        print(response)
             t.sleep(1) # Sleep for a second to avoid posting multiple tweets
 
 
