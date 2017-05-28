@@ -79,6 +79,8 @@ class Bot:
                                 tweets = "".join(self.tweets)
                                 f.write(str(self.counter) + "\r\n" + tweets)
                         break
+                    else:
+                        print(response.error)
             t.sleep(1) # Sleep for a second to avoid posting multiple tweets
 
 
