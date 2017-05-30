@@ -43,7 +43,7 @@ class Bot:
 
         # Establish database connection to set the counter
         self.conn = establish_db_conn()
-        self.cursor = conn.cursor()
+        self.cursor = self.conn.cursor()
         self.cursor.execute("CREATE TABLE IF NOT EXISTS tweets (num integer);")
 
         try: # This block only runs if num exists in tweets (if doesn't exist, fetched assignment fails)
