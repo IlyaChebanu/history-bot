@@ -3,6 +3,10 @@ import codecs
 import oauth2 as oauth
 import datetime
 import time as t
+import os
+import psycopg2
+from urllib.parse import urlparse
+import subprocess
 from credentials import *
 
 TWEET_URL = "https://api.twitter.com/1.1/statuses/update.json"
@@ -13,8 +17,20 @@ def initialize_client(consumer_key, consumer_secret, access_key, access_secret):
     client = oauth.Client(consumer, token)
     return client
 
+def establish_db_conn():
+    url = urlparse(os.environ["DATABASE_URL"])
+
+    conn = psycopg2.connect(
+        database=url.path[1:],
+        user=url.username,
+        password=url.password,
+        host=url.hostname,
+        port=url.port
+    )
+    return conn
+
 class Bot:
-    def __init__(self, name="historyiguess", counter=0, filename=None, interval=10):
+    def __init__(self, name="historyiguess", counter=0, filename=None, interval=10, conn=None):
         try:
             with codecs.open(filename, 'r', 'utf-8') as f:
                 self.tweets = f.readlines()
@@ -22,9 +38,28 @@ class Bot:
         except IOError:
             print("Error opening the file")
             quit()
-        self.counter = counter
         self.interval = interval
         self.name = name
+
+        # Establish database connection to set the counter
+        self.conn = establish_db_conn()
+        self.cursor = conn.cursor()
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS tweets (num integer);")
+
+        try: # This block only runs if num exists in tweets (if doesn't exist, fetched assignment fails)
+            self.cursor.execute("SELECT num FROM tweets;")
+            fetched = self.cursor.fetchone()[0]
+            if counter: # If counter passed as argument
+                self.counter = counter
+            else:
+                self.counter = fetched
+            self.cursor.execute("UPDATE tweets SET num = (%s);", (self.counter,))
+
+        except: # This block runs if num doesn't exist
+            self.counter = counter
+            self.cursor.execute("INSERT INTO tweets (num) VALUES (%s);", (self.counter,))
+
+        self.conn.commit()
 
 
     @staticmethod
@@ -52,20 +87,15 @@ class Bot:
             if not minute % self.interval and not second:
                 for i in range(4): # Try to post 4 times in case an error occurs
                     client = initialize_client(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_KEY, ACCESS_SECRET)
-                    try:
-                        # Get data containing number of tweets
-                        response, data = client.request("https://api.twitter.com/1.1/users/show.json?screen_name=" + self.name, method="GET")
-                        # Parse the data to set the counter
-                        parse = json.loads(data.decode('latin1'))
-                        self.counter = int(parse["statuses_count"])
-                    except:
-                        continue # Try again if parsing failed due to an error
 
                     # when the counter gets to the end, wrap around to the start using modulus
                     msg = self.tweets[self.counter % len(self.tweets)]
                     response, data = __class__.tweet(client, msg)
 
                     if response.status in [200, 403]: # If successfully sent, or duplicate tweet
+                        self.counter += 1
+                        self.cursor.execute("UPDATE tweets SET num = (%s);", (self.counter,))
+                        self.conn.commit()
                         break # No need to try post again, break out of the loop
                     else:
                         print(data)
